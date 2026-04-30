@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard — CySec SQLi Lab{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>&#128737; Training Dashboard</h1>
+  <p class="subtitle">Track your progress and select challenges to master SQL injection techniques.</p>
+</div>
+
+<!-- Stats Bar -->
+<div class="stats-bar">
+  <div class="stat-card">
+    <span class="stat-value">{{ challenges|length }}</span>
+    <span class="stat-label">Total Challenges</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-value">{{ completed|length }}</span>
+    <span class="stat-label">Completed</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-value">{{ total_score }}</span>
+    <span class="stat-label">Total Score</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-value">{{ (session.get('security_level') or 'low')|upper }}</span>
+    <span class="stat-label">Security Level</span>
+  </div>
+</div>
+
+<!-- Progress Bar -->
+<div class="progress-section">
+  <div class="progress-header">
+    <span>Overall Progress</span>
+    <span class="progress-percent">{{ "%.0f"|format((completed|length / challenges|length * 100) if challenges else 0) }}%</span>
+  </div>
+  <div class="progress-bar">
+    <div class="progress-fill" style="width: {{ (completed|length / challenges|length * 100) if challenges else 0 }}%"></div>
+  </div>
+</div>
+
+<!-- Security Level Selector -->
+<div class="section-block">
+  <h2>&#128274; Security Level</h2>
+  <p class="section-desc">Adjust the difficulty level. Higher levels add input filtering and defenses you must bypass.</p>
+  <div class="level-buttons">
+    <a href="/set-level/low" class="button button-green">Low</a>
+    <a href="/set-level/medium" class="button button-yellow">Medium</a>
+    <a href="/set-level/high" class="button button-red">High</a>
+  </div>
+</div>
+
+<!-- Challenge Grid -->
+<h2>&#128195; Challenges</h2>
+<div class="challenge-grid">
+  {% for key, ch in challenges.items() %}
+  <div class="card{% if key in completed %} card-completed{% endif %}">
+    <div class="card-header">
+      <h3 class="card-title">
+        {% if key in completed %}<span class="checkmark">&#10003;</span> {% endif %}{{ ch.name }}
+      </h3>
+    </div>
+    <div class="card-body">
+      <div class="badge-group">
+        <span class="badge badge-blue">{{ ch.category }}</span>
+        <span class="badge badge-{% if ch.difficulty == 'Easy' %}green{% elif ch.difficulty == 'Medium' %}yellow{% else %}red{% endif %}">{{ ch.difficulty }}</span>
+      </div>
+      <p class="card-text">{{ ch.description }}</p>
+      <div class="card-footer">
+        <span class="badge badge-purple">{{ ch.points }} pts</span>
+        {% set route_map = {
+          'auth_bypass': '/login',
+          'error_based': '/search',
+          'union_based': '/union-search',
+          'boolean_blind': '/user-lookup',
+          'time_blind': '/ping',
+          'second_order': '/register',
+          'privilege_escalation': '/admin/update-role'
+        } %}
+        <a href="{{ route_map.get(key, '#') }}" class="button button-primary button-sm">
+          {% if key in completed %}Replay{% else %}Start{% endif %}
+        </a>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Recent Login Attempts -->
+{% if login_attempts %}
+<div class="section-block">
+  <h2>&#128100; Recent Login Attempts</h2>
+  <div class="table-wrapper">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Username</th>
+          <th>IP Address</th>
+          <th>Success</th>
+          <th>Timestamp</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for attempt in login_attempts %}
+        <tr>
+          <td class="mono">{{ attempt.username }}</td>
+          <td class="mono">{{ attempt.ip_address }}</td>
+          <td>
+            {% if attempt.success %}
+              <span class="badge badge-green">Success</span>
+            {% else %}
+              <span class="badge badge-red">Failed</span>
+            {% endif %}
+          </td>
+          <td>{{ attempt.created_at.strftime('%Y-%m-%d %H:%M:%S') if attempt.created_at else 'N/A' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<!-- Audit Log -->
+{% if audit_log %}
+<div class="section-block">
+  <h2>&#128203; Audit Log</h2>
+  <div class="table-wrapper">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Timestamp</th>
+          <th>Event</th>
+          <th>Details</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entry in audit_log %}
+        <tr>
+          <td class="mono">{{ entry.created_at.strftime('%Y-%m-%d %H:%M:%S') if entry.created_at else 'N/A' }}</td>
+          <td>
+            {% if 'challenge' in entry.event_type|lower %}
+              <span class="badge badge-green">{{ entry.event_type }}</span>
+            {% elif 'login' in entry.event_type|lower %}
+              <span class="badge badge-blue">{{ entry.event_type }}</span>
+            {% elif 'error' in entry.event_type|lower or 'fail' in entry.event_type|lower %}
+              <span class="badge badge-red">{{ entry.event_type }}</span>
+            {% else %}
+              <span class="badge badge-purple">{{ entry.event_type }}</span>
+            {% endif %}
+          </td>
+          <td>{{ entry.details }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

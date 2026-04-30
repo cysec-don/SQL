@@ -1,25 +1,24 @@
 ---
 Task ID: 1
 Agent: Main Agent
-Task: Generate comprehensive SQL and SQL Injection textbook as PDF
+Task: Create professional CySec SQLi Lab + update textbook
 
 Work Log:
-- Analyzed user requirements: 10-part textbook covering SQL foundations through SQL injection defense
-- Invoked PDF skill and determined routing: Report brief (Book/long document)
-- Generated color palette via palette.generate with seed 42
-- Selected Template 01 (HUD Data Terminal) for cover design
-- Wrote comprehensive Python generation script (~800 lines) covering all 10 parts
-- Fixed font registration (Liberation Serif instead of Times New Roman)
-- Generated body PDF with auto-TOC (TocDocTemplate + multiBuild)
-- Created cover HTML using Template 01 (grid pattern + thick anchor line)
-- Rendered cover PDF via html2poster.js (Playwright)
-- Merged cover + body PDFs using pypdf with A4 normalization
-- Ran pdf_qa.py quality checks: 9 passed, 3 acceptable warnings
-- Restored author metadata to "CySec Don"
-- Cleaned up temporary files
+- Designed lab architecture: 8 challenges, 3 security levels, Flask/MariaDB stack
+- Created database schema (init.sql) with 7 tables, sample data, and audit trigger
+- Built Flask application (main.py, ~750 lines) with all 8 challenge routes
+- Created 12 HTML templates with dark cybersecurity theme
+- Created Dockerfile (multi-stage build) and docker-compose.yml (3-service stack)
+- Created build.sh for source installation and comprehensive README.md
+- Regenerated textbook PDF (v2) with Part VIII fully rewritten to reference CySec Lab
+- Created new cover page referencing lab, merged into final PDF
+- All quality checks passed (10/10 passed, 2 acceptable warnings)
+- Created tar.gz archive for easy distribution
 
 Stage Summary:
-- Final deliverable: /home/z/my-project/download/SQL_and_SQL_Injection_Textbook_final.pdf
-- 40 pages, 238KB, A4 format
-- Covers all 10 parts: SQL Foundations, SQL Commands (DDL/DML/DCL/TCL), Advanced SQL, SQLi Intro, SQLi Mechanics, Detection & Testing, Prevention & Defense, Hands-On Lab, Case Studies, Review & Assessments
-- Includes: Cover page, auto-generated TOC, code examples, tables, chapter summaries, glossary, cheatsheet
+- Textbook PDF: /home/z/my-project/download/SQL_and_SQL_Injection_Textbook_v2.pdf (26 pages, 200KB)
+- Lab source: /home/z/my-project/download/CySec_Lab/ (Flask app + Docker + DB)
+- Lab archive: /home/z/my-project/download/CySec_Lab.tar.gz (32KB)
+- Part VIII completely rewritten with CySec Lab walkthrough for all 8 challenges
+- Added "CySec Lab Quick Reference" section to the cheatsheet
+- Added "CySec Lab" entry to the glossary

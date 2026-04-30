@@ -1,0 +1,28 @@
+# ═══════════════════════════════════════════════════════════════
+# CySec Don SQLi Training Lab
+# ═══════════════════════════════════════════════════════════════
+#
+# A professional, intentionally vulnerable web application for
+# learning SQL injection detection, analysis, and defense.
+#
+# Author: CySec Don (cysecdon@gmail.com)
+# License: Educational use only
+#
+# WARNING: Contains INTENTIONAL security vulnerabilities.
+#          Use ONLY in isolated lab environments.
+#          Unauthorized use is ILLEGAL.
+#
+# ═══════════════════════════════════════════════════════════════
+
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.env
+*.log
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+db_data/

@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Profile — CySec SQLi Lab{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>&#128100; Your Profile</h1>
+  <p class="subtitle">Manage your account and view your training progress.</p>
+</div>
+
+{% if 'user' in session %}
+<div class="section-block">
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">{{ session.user.username }}</h3>
+      <span class="badge badge-{% if session.user.role == 'admin' %}red{% elif session.user.role == 'manager' %}yellow{% else %}blue{% endif %}">
+        {{ session.user.role }}
+      </span>
+    </div>
+    <div class="card-body">
+      <div class="detail-grid">
+        <div class="detail-item">
+          <span class="detail-label">&#128100; Username</span>
+          <span class="detail-value">{{ session.user.username }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">&#9993; Email</span>
+          <span class="detail-value mono">{{ session.user.email }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">&#128187; Role</span>
+          <span class="detail-value">
+            <span class="badge badge-{% if session.user.role == 'admin' %}red{% elif session.user.role == 'manager' %}yellow{% else %}blue{% endif %}">
+              {{ session.user.role }}
+            </span>
+          </span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">&#127970; Department</span>
+          <span class="detail-value">{{ session.user.department }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">&#128176; Salary</span>
+          <span class="detail-value mono">${{ "%.2f"|format(session.user.salary) if session.user.salary else 'N/A' }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">&#128274; Security Level</span>
+          <span class="detail-value">
+            <span class="level-badge level-{{ session.get('security_level', 'low') or 'low' }}">
+              {{ (session.get('security_level') or 'low')|upper }}
+            </span>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Actions -->
+<div class="section-block">
+  <div class="action-buttons">
+    <a href="/" class="button button-primary">&#128202; Back to Dashboard</a>
+    <a href="/logout" class="button button-red">&#128682; Logout</a>
+  </div>
+</div>
+
+{% if session.user.role == 'admin' %}
+<div class="section-block">
+  <div class="card card-admin">
+    <div class="card-header">
+      <h3 class="card-title">&#128736; Admin Access</h3>
+    </div>
+    <div class="card-body">
+      <p>You have administrator privileges. You can access the admin panel to manage user roles.</p>
+      <a href="/admin/update-role" class="button button-primary button-sm">&#128295; Go to Admin Panel</a>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% else %}
+<div class="warning-box">
+  <div class="warning-icon">&#128274;</div>
+  <div class="warning-content">
+    <h3>Not Logged In</h3>
+    <p>You must be logged in to view your profile. Please log in or register to continue.</p>
+    <div style="margin-top: 1rem;">
+      <a href="/login" class="button button-primary button-sm">Login</a>
+      <a href="/register" class="button button-secondary button-sm">Register</a>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

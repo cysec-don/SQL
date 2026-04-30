@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}Setup — CySec SQLi Lab{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>&#128295; Setup Guide</h1>
+  <p class="subtitle">Get the CySec SQLi Training Lab running with Docker, or build from source.</p>
+</div>
+
+<!-- Docker Quick-Start -->
+<div class="section-block">
+  <h2>&#128051; Docker Quick-Start (Recommended)</h2>
+  <p class="section-desc">The fastest way to launch the entire lab stack — application, MySQL database, and all dependencies — in isolated containers.</p>
+
+  <h3>1. Clone the Repository</h3>
+  <pre class="code-block"><code>git clone https://github.com/cysecdon/cysec-sqli-lab.git
+cd cysec-sqli-lab</code></pre>
+
+  <h3>2. Launch with Docker Compose</h3>
+  <pre class="code-block"><code>docker compose up -d</code></pre>
+
+  <h3>3. Initialize the Database</h3>
+  <pre class="code-block"><code>docker compose exec app python init_db.py</code></pre>
+
+  <h3>4. Access the Lab</h3>
+  <pre class="code-block"><code>Open your browser at: http://localhost:5000</code></pre>
+
+  <h3>5. Tear Down</h3>
+  <pre class="code-block"><code>docker compose down
+docker compose down -v   # also remove volumes (resets database)</code></pre>
+
+  <div class="hint-box">
+    <strong>Tip:</strong> Docker Compose automatically maps ports, configures the MySQL connection, 
+    and seeds the database with challenge data. No manual configuration needed.
+  </div>
+</div>
+
+<!-- Build from Source -->
+<div class="section-block">
+  <h2>&#128187; Build from Source</h2>
+  <p class="section-desc">For development or custom deployments, build the Docker image yourself.</p>
+
+  <h3>1. Build the Docker Image</h3>
+  <pre class="code-block"><code>docker build -t cysec-sqli-lab .</code></pre>
+
+  <h3>2. Run the Container</h3>
+  <pre class="code-block"><code>docker run -d \
+  --name cysec-lab \
+  -p 5000:5000 \
+  -e DB_HOST=mysql \
+  -e DB_USER=sqli_user \
+  -e DB_PASS=sqli_pass_2024 \
+  -e DB_NAME=sqli_lab \
+  cysec-sqli-lab</code></pre>
+
+  <h3>3. Start a MySQL Container</h3>
+  <pre class="code-block"><code>docker run -d \
+  --name mysql \
+  -e MYSQL_ROOT_PASSWORD=root_secret \
+  -e MYSQL_DATABASE=sqli_lab \
+  -e MYSQL_USER=sqli_user \
+  -e MYSQL_PASSWORD=sqli_pass_2024 \
+  -p 3306:3306 \
+  mysql:8.0</code></pre>
+
+  <div class="hint-box">
+    <strong>Note:</strong> Make sure the application container can reach the MySQL container. 
+    Use <code class="inline-code">--network</code> or Docker Compose networking.
+  </div>
+</div>
+
+<!-- Manual Setup -->
+<div class="section-block">
+  <h2>&#128421; Manual Setup (Python + MySQL)</h2>
+  <p class="section-desc">Run the lab directly on your machine without Docker.</p>
+
+  <h3>Prerequisites</h3>
+  <ul class="setup-list">
+    <li>Python 3.9 or higher</li>
+    <li>MySQL 8.0+ (or MariaDB 10.5+)</li>
+    <li>pip and virtualenv</li>
+  </ul>
+
+  <h3>1. Create and Activate a Virtual Environment</h3>
+  <pre class="code-block"><code>cd cysec-sqli-lab
+python3 -m venv venv
+source venv/bin/activate      # Linux / macOS
+# venv\Scripts\activate       # Windows</code></pre>
+
+  <h3>2. Install Python Dependencies</h3>
+  <pre class="code-block"><code>pip install -r requirements.txt</code></pre>
+
+  <h3>3. Set Up MySQL Database</h3>
+  <pre class="code-block"><code># Log into MySQL as root
+mysql -u root -p
+
+# Create database and user
+CREATE DATABASE sqli_lab CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'sqli_user'@'localhost' IDENTIFIED BY 'sqli_pass_2024';
+GRANT ALL PRIVILEGES ON sqli_lab.* TO 'sqli_user'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;</code></pre>
+
+  <h3>4. Configure Environment Variables</h3>
+  <pre class="code-block"><code>cp .env.example .env
+# Edit .env with your database credentials:
+#   DB_HOST=localhost
+#   DB_USER=sqli_user
+#   DB_PASS=sqli_pass_2024
+#   DB_NAME=sqli_lab
+#   SECRET_KEY=your-random-secret-key</code></pre>
+
+  <h3>5. Initialize the Database Schema</h3>
+  <pre class="code-block"><code>python init_db.py</code></pre>
+
+  <h3>6. Run the Application</h3>
+  <pre class="code-block"><code># Development mode (auto-reload)
+flask run --debug --host=0.0.0.0 --port=5000
+
+# Production mode
+gunicorn -w 4 -b 0.0.0.0:5000 app:app</code></pre>
+
+  <div class="hint-box">
+    <strong>Default Credentials:</strong> The lab seeds several accounts including 
+    <code class="inline-code">admin:Ch@ll3ng3_P@ss!</code> for testing authentication challenges. 
+    These are intentionally weak to aid learning.
+  </div>
+</div>
+
+<!-- Troubleshooting -->
+<div class="section-block">
+  <h2>&#128736; Troubleshooting</h2>
+  <div class="table-wrapper">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Problem</th>
+          <th>Solution</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code class="inline-code">Can't connect to MySQL</code></td>
+          <td>Verify MySQL is running and credentials match <code class="inline-code">.env</code>. Check with <code class="inline-code">mysql -u sqli_user -p</code>.</td>
+        </tr>
+        <tr>
+          <td><code class="inline-code">Port 5000 already in use</code></td>
+          <td>Either stop the conflicting process or change the port: <code class="inline-code">flask run -p 8080</code>.</td>
+        </tr>
+        <tr>
+          <td><code class="inline-code">Module not found</code></td>
+          <td>Ensure your virtual environment is activated and run <code class="inline-code">pip install -r requirements.txt</code> again.</td>
+        </tr>
+        <tr>
+          <td><code class="inline-code">Database tables missing</code></td>
+          <td>Run <code class="inline-code">python init_db.py</code> to seed the database with challenge data.</td>
+        </tr>
+        <tr>
+          <td>Docker build fails</td>
+          <td>Check Dockerfile syntax and ensure you have enough disk space. Try <code class="inline-code">docker system prune</code>.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

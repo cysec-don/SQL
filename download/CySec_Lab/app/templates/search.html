@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Product Search — CySec SQLi Lab{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>&#128269; Product Search</h1>
+  <p class="subtitle">
+    {% if mode == 'union' %}
+      UNION-Based SQL Injection Challenge — Extract hidden data by injecting UNION queries.
+    {% else %}
+      Error-Based SQL Injection Challenge — Trigger database errors to leak sensitive information.
+    {% endif %}
+  </p>
+</div>
+
+<!-- Search Form -->
+<div class="form-container">
+  <form method="POST" action="{{ '/union-search' if mode == 'union' else '/search' }}" class="form">
+    <h2 class="form-title">&#128270; Search Products</h2>
+
+    <div class="form-group">
+      <label for="query" class="form-label">Search Query</label>
+      <input
+        type="text"
+        id="query"
+        name="query"
+        class="form-input"
+        placeholder="Enter product name or SQL payload..."
+        value="{{ query if query else '' }}"
+        autocomplete="off"
+      >
+    </div>
+
+    <div class="form-group">
+      <label for="category" class="form-label">Category (Optional)</label>
+      <select id="category" name="category" class="form-input form-select">
+        <option value="">All Categories</option>
+        <option value="electronics" {% if category == 'electronics' %}selected{% endif %}>Electronics</option>
+        <option value="software" {% if category == 'software' %}selected{% endif %}>Software</option>
+        <option value="hardware" {% if category == 'hardware' %}selected{% endif %}>Hardware</option>
+        <option value="networking" {% if category == 'networking' %}selected{% endif %}>Networking</option>
+      </select>
+    </div>
+
+    <button type="submit" class="button button-primary button-full">Search</button>
+  </form>
+</div>
+
+<!-- Error Display -->
+{% if error %}
+<div class="error-box">
+  <span class="error-icon">&#10060;</span>
+  <div class="error-content">
+    <p><strong>Database Error:</strong></p>
+    <pre class="code-block error-code">{{ error }}</pre>
+    <p class="error-note">Carefully examine this error message — it may contain useful information about the database structure.</p>
+  </div>
+</div>
+{% endif %}
+
+<!-- Results Table -->
+{% if results is defined and results %}
+<div class="section-block">
+  <h2>&#128203; Search Results ({{ results|length }} found)</h2>
+  <div class="table-wrapper">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Product Name</th>
+          <th>Price</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in results %}
+        <tr>
+          <td class="mono">{{ row[0] }}</td>
+          <td>{{ row[1] }}</td>
+          <td class="mono">${{ "%.2f"|format(row[2]) if row[2] is not none else row[2] }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% elif results is defined and not results and query %}
+<div class="hint-box">
+  <p>No products found matching your query. Try a different search term, or verify your SQL syntax is correct.</p>
+</div>
+{% endif %}
+
+<!-- Hint Box -->
+<div class="hint-box">
+  <h3>&#128161; Challenge Hints</h3>
+
+  <p><strong>Column Count:</strong> The products table query returns <code class="inline-code">{{ num_columns }} columns</code>.</p>
+
+  <ul>
+    <li>The query is built as:
+      <pre class="code-block"><code>SELECT product_id, name, price 
+FROM products 
+WHERE name LIKE '%{{ query if query else '[input]' }}%'
+{% if category %}AND category = '{{ category }}'{% endif %}</code></pre>
+    </li>
+    <li>Use <code class="inline-code">'</code> to break out of the string literal and trigger an error.</li>
+    <li>Try <code class="inline-code">' ORDER BY N--</code> to enumerate columns (adjust N).</li>
+  </ul>
+
+  {% if mode == 'union' %}
+  <div class="hint-advanced">
+    <h4>&#128640; UNION-Based Tips</h4>
+    <ul>
+      <li>Use <code class="inline-code">' UNION SELECT 1,2,3--</code> (adjust to <code class="inline-code">{{ num_columns }}</code> columns) to find injectable positions.</li>
+      <li>Replace the displayable column with real data:
+        <pre class="code-block"><code>' UNION SELECT 1, username, password FROM users--</code></pre>
+      </li>
+      <li>Enumerate tables with:
+        <pre class="code-block"><code>' UNION SELECT 1, table_name, table_schema 
+FROM information_schema.tables WHERE table_schema = DATABASE()--</code></pre>
+      </li>
+      <li>On higher security levels, keywords like <code class="inline-code">UNION</code> and <code class="inline-code">SELECT</code> may be filtered.</li>
+    </ul>
+  </div>
+  {% endif %}
+
+  <p class="hint-meta">
+    Difficulty: 
+    <span class="badge {% if mode == 'union' %}badge-yellow{% else %}badge-green{% endif %}">
+      {{ 'Medium' if mode == 'union' else 'Easy' }}
+    </span>
+    &nbsp; Points: {{ '200' if mode == 'union' else '150' }}
+  </p>
+</div>
+
+{% endblock %}

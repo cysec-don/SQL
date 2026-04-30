@@ -1,0 +1,84 @@
+# ═══════════════════════════════════════════════════════════════
+# CySec Don SQLi Training Lab - Docker Compose
+# ═══════════════════════════════════════════════════════════════
+# Quick Start:
+#   docker compose up -d          # Start all services
+#   docker compose logs -f app    # View application logs
+#   docker compose down -v        # Stop and remove volumes (reset)
+#
+# The lab will be available at: http://localhost:5000
+# ═══════════════════════════════════════════════════════════════
+
+services:
+  # ─── MariaDB Database ──────────────────────────────────────
+  db:
+    image: mariadb:11.4
+    container_name: cysec-lab-db
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: root_password_change_me
+      MARIADB_DATABASE: cysec_lab
+      MARIADB_USER: cysec_lab
+      MARIADB_PASSWORD: cysec_lab_pass
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./db/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - cysec-net
+
+  # ─── Flask Application ────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cysec-lab-app
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      FLASK_SECRET_KEY: cysec-lab-docker-change-me
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: cysec_lab
+      DB_PASSWORD: cysec_lab_pass
+      DB_NAME: cysec_lab
+      SECURITY_LEVEL: low
+      PYTHONUNBUFFERED: "1"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - cysec-net
+
+  # ─── phpMyAdmin (optional, for direct DB access) ──────────
+  phpmyadmin:
+    image: phpmyadmin:5.2
+    container_name: cysec-lab-pma
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      PMA_USER: cysec_lab
+      PMA_PASSWORD: cysec_lab_pass
+    depends_on:
+      - db
+    networks:
+      - cysec-net
+
+volumes:
+  db_data:
+    driver: local
+
+networks:
+  cysec-net:
+    driver: bridge

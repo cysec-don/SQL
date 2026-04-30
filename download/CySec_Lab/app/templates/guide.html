@@ -1,0 +1,312 @@
+{% extends "base.html" %}
+
+{% block title %}Lab Guide — CySec SQLi Lab{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>&#128218; Lab Guide</h1>
+  <p class="subtitle">Comprehensive walkthrough for every SQL injection challenge in this lab.</p>
+</div>
+
+<!-- Ethical Use Warning -->
+<div class="warning-box">
+  <div class="warning-icon">&#9888;</div>
+  <div class="warning-content">
+    <h3>Ethical Use Warning</h3>
+    <p>
+      This lab environment is designed <strong>exclusively for authorized educational purposes</strong>. 
+      All activities are conducted within an isolated, sandboxed environment. Never apply these 
+      techniques against systems you do not own or have explicit written permission to test. 
+      Unauthorized access to computer systems is a criminal offense in most jurisdictions.
+    </p>
+  </div>
+</div>
+
+<!-- Table of Contents -->
+<div class="section-block">
+  <h2>&#128196; Table of Contents</h2>
+  <ol class="toc-list">
+    <li><a href="#ch-auth-bypass">Authentication Bypass — Classic SQLi</a></li>
+    <li><a href="#ch-error-based">Error-Based SQL Injection</a></li>
+    <li><a href="#ch-union-based">UNION-Based SQL Injection</a></li>
+    <li><a href="#ch-boolean-blind">Boolean-Based Blind SQL Injection</a></li>
+    <li><a href="#ch-time-blind">Time-Based Blind SQL Injection</a></li>
+    <li><a href="#ch-second-order">Second-Order SQL Injection</a></li>
+    <li><a href="#ch-privilege-esc">Privilege Escalation via SQL Injection</a></li>
+  </ol>
+</div>
+
+<!-- Challenge 1: Auth Bypass -->
+<div class="section-block" id="ch-auth-bypass">
+  <div class="challenge-section">
+    <h2>
+      <span class="badge badge-blue">Authentication</span>
+      <span class="badge badge-green">Easy</span>
+      Challenge 1: Authentication Bypass
+    </h2>
+    <p class="challenge-desc">
+      The login form is vulnerable to classic SQL injection. By crafting a malicious input 
+      in the username or password field, you can bypass authentication entirely and gain 
+      unauthorized access to the application.
+    </p>
+
+    <div class="challenge-objective">
+      <h3>&#127919; Objective</h3>
+      <p>Log in as the <code class="inline-code">admin</code> user without knowing the real password. The backend constructs the query as:</p>
+      <pre class="code-block"><code>SELECT * FROM users WHERE username = '{user_input}' AND password = '{pass_input}'</code></pre>
+      <p>Find an input that makes this query always evaluate to <code class="inline-code">TRUE</code>.</p>
+    </div>
+
+    <div class="hints-toggle" onclick="toggleHints(this)">
+      <span class="hints-label">&#128161; Show Hints</span>
+      <div class="hints-content" style="display:none;">
+        <ul>
+          <li>Think about how SQL handles string termination with single quotes.</li>
+          <li>Try injecting <code class="inline-code">' OR '1'='1</code> or <code class="inline-code">' OR 1=1 --</code></li>
+          <li>Pay attention to comment syntax (<code class="inline-code">--</code>, <code class="inline-code">#</code>, <code class="inline-code">/*</code>) to truncate the rest of the query.</li>
+          <li>On <strong>Medium</strong> level, basic keyword filters are applied — try case variations or URL encoding.</li>
+          <li>On <strong>High</strong> level, prepared statements partially replace raw queries — look for remaining injection points.</li>
+        </ul>
+      </div>
+    </div>
+
+    <a href="/login" class="button button-primary">Start Challenge &#8594;</a>
+  </div>
+</div>
+
+<!-- Challenge 2: Error-Based -->
+<div class="section-block" id="ch-error-based">
+  <div class="challenge-section">
+    <h2>
+      <span class="badge badge-blue">Injection</span>
+      <span class="badge badge-green">Easy</span>
+      Challenge 2: Error-Based SQL Injection
+    </h2>
+    <p class="challenge-desc">
+      The product search feature directly concatenates user input into an SQL query. Deliberately 
+      crafted input will trigger database errors that leak sensitive information such as table names, 
+      column names, and database version.
+    </p>
+
+    <div class="challenge-objective">
+      <h3>&#127919; Objective</h3>
+      <p>Extract the database version and the name of the database management system by triggering informative error messages.</p>
+      <pre class="code-block"><code>SELECT * FROM products WHERE name LIKE '%{user_input}%'</code></pre>
+    </div>
+
+    <div class="hints-toggle" onclick="toggleHints(this)">
+      <span class="hints-label">&#128161; Show Hints</span>
+      <div class="hints-content" style="display:none;">
+        <ul>
+          <li>Use a single quote to break the string context and observe the error message.</li>
+          <li>Functions like <code class="inline-code">EXTRACTVALUE()</code>, <code class="inline-code">UPDATEXML()</code>, or <code class="inline-code">JSON_KEYS()</code> can trigger verbose errors.</li>
+          <li>Example: <code class="inline-code">' AND EXTRACTVALUE(1, CONCAT(0x7e, VERSION())) --</code></li>
+          <li>The number of columns in the result set matters — use <code class="inline-code">ORDER BY</code> to enumerate them.</li>
+        </ul>
+      </div>
+    </div>
+
+    <a href="/search" class="button button-primary">Start Challenge &#8594;</a>
+  </div>
+</div>
+
+<!-- Challenge 3: UNION-Based -->
+<div class="section-block" id="ch-union-based">
+  <div class="challenge-section">
+    <h2>
+      <span class="badge badge-blue">Injection</span>
+      <span class="badge badge-yellow">Medium</span>
+      Challenge 3: UNION-Based SQL Injection
+    </h2>
+    <p class="challenge-desc">
+      Using the <code class="inline-code">UNION</code> SQL operator, you can append an additional query to the original 
+      and retrieve data from other tables within the same database. This challenge requires you to 
+      determine the column count and map your injection to displayable columns.
+    </p>
+
+    <div class="challenge-objective">
+      <h3>&#127919; Objective</h3>
+      <p>Extract the list of usernames and passwords from the <code class="inline-code">users</code> table.</p>
+      <pre class="code-block"><code>SELECT product_id, name, price FROM products WHERE name LIKE '%{user_input}%'</code></pre>
+    </div>
+
+    <div class="hints-toggle" onclick="toggleHints(this)">
+      <span class="hints-label">&#128161; Show Hints</span>
+      <div class="hints-content" style="display:none;">
+        <ul>
+          <li>First, find the number of columns using <code class="inline-code">ORDER BY N--</code> — increment N until you get an error.</li>
+          <li>Then use <code class="inline-code">UNION SELECT 1,2,3--</code> (adjust column count) to find displayable columns.</li>
+          <li>Replace the displayable columns with <code class="inline-code">username, password FROM users</code>.</li>
+          <li>Use <code class="inline-code">information_schema.tables</code> to enumerate tables if needed.</li>
+          <li>On higher security levels, the word <code class="inline-code">UNION</code> may be filtered — try mixed case like <code class="inline-code">UnIoN</code>.</li>
+        </ul>
+      </div>
+    </div>
+
+    <a href="/union-search" class="button button-primary">Start Challenge &#8594;</a>
+  </div>
+</div>
+
+<!-- Challenge 4: Boolean Blind -->
+<div class="section-block" id="ch-boolean-blind">
+  <div class="challenge-section">
+    <h2>
+      <span class="badge badge-blue">Blind</span>
+      <span class="badge badge-yellow">Medium</span>
+      Challenge 4: Boolean-Based Blind SQL Injection
+    </h2>
+    <p class="challenge-desc">
+      The user lookup page returns different responses depending on whether a user exists or not, 
+      but never reveals data directly. You must infer information character by character using 
+      <code class="inline-code">TRUE</code>/<code class="inline-code">FALSE</code> conditions in your injected SQL.
+    </p>
+
+    <div class="challenge-objective">
+      <h3>&#127919; Objective</h3>
+      <p>Extract the admin user's password hash one character at a time using conditional queries.</p>
+      <pre class="code-block"><code>SELECT * FROM users WHERE user_id = {user_input}</code></pre>
+    </div>
+
+    <div class="hints-toggle" onclick="toggleHints(this)">
+      <span class="hints-label">&#128161; Show Hints</span>
+      <div class="hints-content" style="display:none;">
+        <ul>
+          <li>Test with <code class="inline-code">1 AND 1=1</code> (should return results) vs <code class="inline-code">1 AND 1=2</code> (should return nothing).</li>
+          <li>Use <code class="inline-code">SUBSTRING(password, N, 1) = 'X'</code> to test each character of the hash.</li>
+          <li>Use <code class="inline-code">ASCII()</code> and binary search to speed up character extraction.</li>
+          <li>Automate with a script — humans shouldn't manually enumerate 32+ characters.</li>
+          <li>Try <code class="inline-code">sqlmap</code> with <code class="inline-code">--technique=B</code> for automated boolean-based extraction.</li>
+        </ul>
+      </div>
+    </div>
+
+    <a href="/user-lookup" class="button button-primary">Start Challenge &#8594;</a>
+  </div>
+</div>
+
+<!-- Challenge 5: Time Blind -->
+<div class="section-block" id="ch-time-blind">
+  <div class="challenge-section">
+    <h2>
+      <span class="badge badge-blue">Blind</span>
+      <span class="badge badge-red">Hard</span>
+      Challenge 5: Time-Based Blind SQL Injection
+    </h2>
+    <p class="challenge-desc">
+      The network diagnostic tool uses user-supplied IDs in a query but returns no visible output — 
+      only the response time differs. Inject conditional <code class="inline-code">SLEEP()</code> or 
+      <code class="inline-code">BENCHMARK()</code> calls to infer data by measuring response delays.
+    </p>
+
+    <div class="challenge-objective">
+      <h3>&#127919; Objective</h3>
+      <p>Determine the database name and extract at least one credential using only timing differences as your oracle.</p>
+      <pre class="code-block"><code>SELECT response_text FROM diagnostics WHERE target_id = {user_input}</code></pre>
+    </div>
+
+    <div class="hints-toggle" onclick="toggleHints(this)">
+      <span class="hints-label">&#128161; Show Hints</span>
+      <div class="hints-content" style="display:none;">
+        <ul>
+          <li>Test with <code class="inline-code">1; SELECT SLEEP(5)--</code> — if the response takes ~5 seconds, injection is possible.</li>
+          <li>Use conditional timing: <code class="inline-code">1 AND IF(SUBSTRING(DATABASE(),1,1)='c', SLEEP(5), 0)--</code></li>
+          <li>Each character test takes one request — this is slow. Use binary search to reduce attempts.</li>
+          <li>Tools like <code class="inline-code">sqlmap --technique=T</code> can automate this process.</li>
+          <li>Be aware of network jitter — repeat tests to confirm timing is consistent.</li>
+        </ul>
+      </div>
+    </div>
+
+    <a href="/ping" class="button button-primary">Start Challenge &#8594;</a>
+  </div>
+</div>
+
+<!-- Challenge 6: Second-Order -->
+<div class="section-block" id="ch-second-order">
+  <div class="challenge-section">
+    <h2>
+      <span class="badge badge-blue">Second-Order</span>
+      <span class="badge badge-red">Hard</span>
+      Challenge 6: Second-Order SQL Injection
+    </h2>
+    <p class="challenge-desc">
+      Unlike traditional SQLi, the malicious payload is <strong>stored</strong> in the database during 
+      registration (a seemingly safe operation) and later <strong>executed</strong> when a different 
+      page queries that stored data. The vulnerability exists not in the registration form but in 
+      the profile search feature.
+    </p>
+
+    <div class="challenge-objective">
+      <h3>&#127919; Objective</h3>
+      <p>Register a new account with a crafted username, then trigger the stored payload via the profile search to extract admin credentials.</p>
+    </div>
+
+    <div class="hints-toggle" onclick="toggleHints(this)">
+      <span class="hints-label">&#128161; Show Hints</span>
+      <div class="hints-content" style="display:none;">
+        <ul>
+          <li>The registration page <em>sanitizes</em> input, but the profile search page does <em>not</em> properly parameterize its query.</li>
+          <li>During registration, store a payload in a field like the department or username.</li>
+          <li>Example: register with username <code class="inline-code">normal_user' --</code> or a payload in the department field.</li>
+          <li>Then navigate to the profile search page and look up that user — the stored data becomes part of a new SQL query.</li>
+          <li>This is one of the hardest injection types to detect and prevent.</li>
+        </ul>
+      </div>
+    </div>
+
+    <a href="/register" class="button button-primary">Start Challenge &#8594;</a>
+  </div>
+</div>
+
+<!-- Challenge 7: Privilege Escalation -->
+<div class="section-block" id="ch-privilege-esc">
+  <div class="challenge-section">
+    <h2>
+      <span class="badge badge-blue">Privilege Escalation</span>
+      <span class="badge badge-red">Hard</span>
+      Challenge 7: Privilege Escalation via SQL Injection
+    </h2>
+    <p class="challenge-desc">
+      The admin panel allows role updates for users, but the role assignment endpoint is vulnerable. 
+      By exploiting SQL injection in the user_id or role parameter, you can escalate your own 
+      privileges from a regular user to an administrator.
+    </p>
+
+    <div class="challenge-objective">
+      <h3>&#127919; Objective</h3>
+      <p>Elevate your user account's role to <code class="inline-code">admin</code> using SQL injection in the role update feature.</p>
+      <pre class="code-block"><code>UPDATE users SET role = '{user_input}' WHERE user_id = {id}</code></pre>
+    </div>
+
+    <div class="hints-toggle" onclick="toggleHints(this)">
+      <span class="hints-label">&#128161; Show Hints</span>
+      <div class="hints-content" style="display:none;">
+        <ul>
+          <li>The vulnerability may be in either the <code class="inline-code">user_id</code> or <code class="inline-code">new_role</code> parameter.</li>
+          <li>If injecting into <code class="inline-code">user_id</code>, try stacking queries or modifying the WHERE clause.</li>
+          <li>Consider: <code class="inline-code">1 OR 1=1</code> to update ALL users, or target a specific condition.</li>
+          <li>Stacked queries (<code class="inline-code">;</code>) may work depending on the database driver and Python connector.</li>
+          <li>On higher levels, the app may validate role values — look for ways to bypass the validation logic.</li>
+        </ul>
+      </div>
+    </div>
+
+    <a href="/admin/update-role" class="button button-primary">Start Challenge &#8594;</a>
+  </div>
+</div>
+
+<script>
+function toggleHints(el) {
+  var content = el.querySelector('.hints-content');
+  var label = el.querySelector('.hints-label');
+  if (content.style.display === 'none') {
+    content.style.display = 'block';
+    label.innerHTML = '&#128161; Hide Hints';
+  } else {
+    content.style.display = 'none';
+    label.innerHTML = '&#128161; Show Hints';
+  }
+}
+</script>
+
+{% endblock %}
