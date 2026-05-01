@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}Register — CySec SQLi Lab{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>&#128221; User Registration</h1>
+  <p class="subtitle">Second-Order SQL Injection — Your payload is stored now, but exploited later.</p>
+</div>
+
+<!-- Messages -->
+{% if error %}
+<div class="error-box">
+  <span class="error-icon">&#10060;</span>
+  {{ error }}
+</div>
+{% endif %}
+
+{% if success %}
+<div class="success-box">
+  <span class="success-icon">&#9989;</span>
+  {{ success }}
+  <div style="margin-top: 0.75rem;">
+    <a href="/profile-search" class="button button-primary button-sm">&#128269; Go to Profile Search</a>
+  </div>
+</div>
+{% endif %}
+
+<!-- Registration Form -->
+<div class="form-container">
+  <form method="POST" action="/register" class="form">
+    <h2 class="form-title">&#128100; Create Account</h2>
+
+    <div class="form-group">
+      <label for="username" class="form-label">Username</label>
+      <input
+        type="text"
+        id="username"
+        name="username"
+        class="form-input"
+        placeholder="Choose a username..."
+        value="{{ username if username else '' }}"
+        required
+        autocomplete="off"
+      >
+    </div>
+
+    <div class="form-group">
+      <label for="email" class="form-label">Email</label>
+      <input
+        type="email"
+        id="email"
+        name="email"
+        class="form-input"
+        placeholder="your@email.com"
+        value="{{ email if email else '' }}"
+        required
+        autocomplete="off"
+      >
+    </div>
+
+    <div class="form-group">
+      <label for="password" class="form-label">Password</label>
+      <input
+        type="password"
+        id="password"
+        name="password"
+        class="form-input"
+        placeholder="Choose a password..."
+        required
+        autocomplete="off"
+      >
+    </div>
+
+    <div class="form-group">
+      <label for="department" class="form-label">Department</label>
+      <input
+        type="text"
+        id="department"
+        name="department"
+        class="form-input"
+        placeholder="e.g. Engineering, IT, Security..."
+        value="{{ department if department else '' }}"
+        autocomplete="off"
+      >
+    </div>
+
+    <button type="submit" class="button button-primary button-full">Register</button>
+  </form>
+</div>
+
+<!-- Hint Box -->
+<div class="hint-box">
+  <h3>&#128161; Challenge Hints — Second-Order SQL Injection</h3>
+
+  <div class="warning-box" style="margin-bottom: 1rem;">
+    <p>
+      <strong>Key Concept:</strong> Unlike traditional SQL injection, second-order injection exploits 
+      data that is <em>stored</em> in the database and later used unsafely in a <em>different</em> query.
+    </p>
+  </div>
+
+  <h4>How It Works</h4>
+  <ol>
+    <li>
+      <strong>Step 1 — Store the payload:</strong> Register an account and embed SQL injection 
+      payload into one of the fields (username, email, or department). The registration page may 
+      appear to handle input safely.
+    </li>
+    <li>
+      <strong>Step 2 — Trigger the payload:</strong> Navigate to the 
+      <a href="/profile-search" class="inline-link">Profile Search</a> page and look up your user. 
+      The stored data is now used in a vulnerable query, causing your payload to execute.
+    </li>
+  </ol>
+
+  <h4>Payload Ideas</h4>
+  <ul>
+    <li>Register with a username containing SQL: <code class="inline-code">test' OR '1'='1</code></li>
+    <li>Store a payload in the department field: <code class="inline-code">Engineering' UNION SELECT 1,username,password,4,5 FROM users--</code></li>
+    <li>Close quotes strategically to alter the profile search query structure.</li>
+  </ul>
+
+  <h4>Why This Is Dangerous</h4>
+  <p>
+    Second-order injection is particularly insidious because:
+  </p>
+  <ul>
+    <li>The <strong>input point</strong> (registration) appears safe and passes security reviews.</li>
+    <li>The <strong>execution point</strong> (profile search) uses trusted database data, so developers may not apply input sanitization.</li>
+    <li>It often evades Web Application Firewalls (WAFs) that only inspect the initial request.</li>
+  </ul>
+
+  <p class="hint-meta">Difficulty: <span class="badge badge-red">Hard</span> &nbsp; Points: 350</p>
+</div>
+
+{% endblock %}

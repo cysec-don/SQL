@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}User Lookup — CySec SQLi Lab{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>&#128100; User Lookup</h1>
+  <p class="subtitle">Boolean-Based Blind SQL Injection — Infer data character by character through true/false responses.</p>
+</div>
+
+<!-- Lookup Form -->
+<div class="form-container">
+  <form method="POST" action="/user-lookup" class="form">
+    <h2 class="form-title">&#128270; Look Up User by ID</h2>
+
+    <div class="form-group">
+      <label for="user_id" class="form-label">User ID</label>
+      <input
+        type="text"
+        id="user_id"
+        name="user_id"
+        class="form-input"
+        placeholder="Enter a user ID (e.g. 1) or SQL condition..."
+        value="{{ user_id if user_id else '' }}"
+        autocomplete="off"
+      >
+    </div>
+
+    <button type="submit" class="button button-primary button-full">Lookup</button>
+  </form>
+</div>
+
+<!-- Result Card -->
+{% if user %}
+<div class="section-block">
+  <h2>&#9989; User Found</h2>
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">{{ user.username }}</h3>
+      <span class="badge badge-blue">ID: {{ user.user_id }}</span>
+    </div>
+    <div class="card-body">
+      <div class="detail-grid">
+        <div class="detail-item">
+          <span class="detail-label">User ID</span>
+          <span class="detail-value mono">{{ user.user_id }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Username</span>
+          <span class="detail-value">{{ user.username }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Email</span>
+          <span class="detail-value mono">{{ user.email }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Department</span>
+          <span class="detail-value">{{ user.department }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Salary</span>
+          <span class="detail-value mono">${{ "%.2f"|format(user.salary) if user.salary else 'N/A' }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% elif submitted %}
+<div class="hint-box">
+  <p>&#128533; No user found with that ID. This could mean your SQL condition evaluated to <code class="inline-code">FALSE</code> — exactly the signal you need for boolean-based blind injection.</p>
+</div>
+{% endif %}
+
+<!-- Hint Box -->
+<div class="hint-box">
+  <h3>&#128161; Challenge Hints</h3>
+
+  <p>{{ hint if hint else "Observe the page response — does it show user data or not? That's your oracle." }}</p>
+
+  <h4>Query Structure</h4>
+  <p>The backend constructs this query:</p>
+  <pre class="code-block"><code>SELECT user_id, username, email, department, salary 
+FROM users 
+WHERE user_id = {{ user_id if user_id else '[your_input]' }}</code></pre>
+
+  <ul>
+    <li><strong>Test TRUE condition:</strong> <code class="inline-code">1 AND 1=1</code> &rarr; Should return user data.</li>
+    <li><strong>Test FALSE condition:</strong> <code class="inline-code">1 AND 1=2</code> &rarr; Should return no user data.</li>
+    <li><strong>Extract a character:</strong>
+      <pre class="code-block"><code>1 AND SUBSTRING((SELECT password FROM users WHERE username='admin'),1,1)='a'</code></pre>
+      If the user is found, the first character of the password is 'a'.
+    </li>
+    <li><strong>Binary search optimization:</strong>
+      <pre class="code-block"><code>1 AND ASCII(SUBSTRING((SELECT password FROM users WHERE username='admin'),1,1)) > 100</code></pre>
+      Narrow down each character using ASCII comparisons.
+    </li>
+    <li><strong>Count characters:</strong>
+      <pre class="code-block"><code>1 AND LENGTH((SELECT password FROM users WHERE username='admin')) > 10</code></pre>
+    </li>
+  </ul>
+
+  <p class="hint-meta">Difficulty: <span class="badge badge-yellow">Medium</span> &nbsp; Points: 250</p>
+</div>
+
+{% endblock %}

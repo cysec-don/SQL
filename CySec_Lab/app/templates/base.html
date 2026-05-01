@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}CySec SQLi Lab{% endblock %}</title>
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<nav class="navbar">
+  <div class="nav-brand">
+    <span class="shield"></span>
+    <span class="brand-text">CySec SQLi Lab</span>
+  </div>
+  <div class="nav-links">
+    <a href="/" class="nav-link{% if request.endpoint == 'index' %} active{% endif %}">Dashboard</a>
+    <a href="/guide" class="nav-link{% if request.endpoint == 'guide' %} active{% endif %}">Lab Guide</a>
+    <a href="/setup" class="nav-link{% if request.endpoint == 'setup_info' %} active{% endif %}">Setup</a>
+    {% if 'user' in session %}
+      <a href="/profile" class="nav-link">Profile</a>
+      <a href="/logout" class="nav-link">Logout</a>
+    {% endif %}
+  </div>
+  <div class="nav-badge">
+    <span class="level-badge level-{{ session.get('security_level', 'low') or 'low' }}">
+      {{ (session.get('security_level') or 'low')|upper }}
+    </span>
+  </div>
+</nav>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="flash-container">
+      {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+<main class="main-content">
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="footer">
+  <p>CySec Don SQLi Training Lab &mdash; For Educational &amp; Defensive Use Only</p>
+  <p class="footer-sub">Author: CySec Don | cysecdon@gmail.com</p>
+</footer>
+</body>
+</html>

@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+
+{% block title %}Setup — CySec SQLi Lab{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>&#128295; Setup Guide</h1>
+  <p class="subtitle">Get the CySec Don SQLi Training Lab running with Docker, or build from source.</p>
+</div>
+
+<!-- Docker Quick-Start -->
+<div class="section-block">
+  <h2>&#128051; Docker Compose (Recommended)</h2>
+  <p class="section-desc">The fastest way to launch the entire lab stack — Flask app, MariaDB database, and phpMyAdmin — in isolated containers.</p>
+
+  <h3>1. Clone the Repository</h3>
+  <pre class="code-block"><code>git clone https://github.com/cysec-don/SQL.git
+cd SQL/CySec_Lab</code></pre>
+
+  <h3>2. Launch with Docker Compose</h3>
+  <pre class="code-block"><code>docker compose up -d --build</code></pre>
+
+  <h3>3. Wait for Services to be Healthy (~30 seconds)</h3>
+  <pre class="code-block"><code>docker compose ps</code></pre>
+
+  <h3>4. Access the Lab</h3>
+  <ul class="setup-list">
+    <li><strong>Lab Application:</strong> <code class="inline-code">http://localhost:5000</code></li>
+    <li><strong>phpMyAdmin:</strong> <code class="inline-code">http://localhost:8080</code></li>
+  </ul>
+
+  <h3>5. Tear Down</h3>
+  <pre class="code-block"><code>docker compose down
+docker compose down -v   # also remove volumes (resets database)</code></pre>
+
+  <div class="hint-box">
+    <strong>Tip:</strong> Docker Compose automatically maps ports, configures the MariaDB connection,
+    and seeds the database with challenge data. No manual configuration needed.
+  </div>
+</div>
+
+<!-- Docker Standalone -->
+<div class="section-block">
+  <h2>&#128051; Docker Run (Standalone)</h2>
+  <p class="section-desc">Build the image and run with a separate database container.</p>
+
+  <h3>1. Start MariaDB</h3>
+  <pre class="code-block"><code>docker run -d --name cysec-db \
+  -e MARIADB_ROOT_PASSWORD=root_password_change_me \
+  -e MARIADB_DATABASE=cysec_lab \
+  -e MARIADB_USER=cysec_lab \
+  -e MARIADB_PASSWORD=cysec_lab_pass \
+  -v $(pwd)/db/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro \
+  -p 3306:3306 \
+  mariadb:11.4</code></pre>
+
+  <h3>2. Wait for MariaDB to Initialize</h3>
+  <pre class="code-block"><code>sleep 15</code></pre>
+
+  <h3>3. Build and Start the Lab</h3>
+  <pre class="code-block"><code>docker build -t cysec-lab .
+docker run -d --name cysec-app \
+  --link cysec-db:db \
+  -p 5000:5000 \
+  cysec-lab</code></pre>
+
+  <div class="hint-box">
+    <strong>Note:</strong> Access the lab at <code class="inline-code">http://localhost:5000</code>.
+    The database auto-initializes via <code class="inline-code">init.sql</code>.
+  </div>
+</div>
+
+<!-- Build from Source -->
+<div class="section-block">
+  <h2>&#128187; Build from Source</h2>
+  <p class="section-desc">Run the lab directly on your machine without Docker using Python and MariaDB/MySQL.</p>
+
+  <h3>Prerequisites</h3>
+  <ul class="setup-list">
+    <li>Python 3.10 or higher</li>
+    <li>MariaDB 10.6+ or MySQL 8.0+</li>
+    <li>pip and virtualenv</li>
+  </ul>
+
+  <h3>Option A: Automated Setup Script</h3>
+  <pre class="code-block"><code>cd SQL/CySec_Lab
+bash scripts/build.sh</code></pre>
+  <p class="section-desc" style="margin-bottom:0;">The script will check prerequisites, create a virtual environment, install dependencies, configure the database, import the schema, and create a <code class="inline-code">.env</code> file for you.</p>
+
+  <h3>Option B: Manual Setup</h3>
+
+  <h3>1. Create and Activate a Virtual Environment</h3>
+  <pre class="code-block"><code>python3 -m venv venv
+source venv/bin/activate      # Linux / macOS</code></pre>
+
+  <h3>2. Install Python Dependencies</h3>
+  <pre class="code-block"><code>pip install -r requirements.txt</code></pre>
+
+  <h3>3. Set Up MariaDB/MySQL Database</h3>
+  <pre class="code-block"><code>mysql -u root -p
+
+CREATE DATABASE cysec_lab CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'cysec_lab'@'localhost' IDENTIFIED BY 'cysec_lab_pass';
+GRANT ALL PRIVILEGES ON cysec_lab.* TO 'cysec_lab'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;</code></pre>
+
+  <h3>4. Import the Schema</h3>
+  <pre class="code-block"><code>mysql -u cysec_lab -p'cysec_lab_pass' cysec_lab &lt; db/init.sql</code></pre>
+
+  <h3>5. Configure Environment Variables</h3>
+  <pre class="code-block"><code>export FLASK_SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_hex(32))")
+export DB_HOST=localhost
+export DB_PORT=3306
+export DB_USER=cysec_lab
+export DB_PASSWORD=cysec_lab_pass
+export DB_NAME=cysec_lab
+export SECURITY_LEVEL=low</code></pre>
+
+  <h3>6. Run the Application</h3>
+  <pre class="code-block"><code>python -m app.main</code></pre>
+
+  <div class="hint-box">
+    <strong>Default Credentials:</strong> All user accounts (admin, alice, bob, etc.) have the
+    password <code class="inline-code">password</code> for lab convenience. See the README for the full list.
+  </div>
+</div>
+
+<!-- Reset Database -->
+<div class="section-block">
+  <h2>&#128260; Reset Database</h2>
+  <p class="section-desc">Reset all data to the initial state.</p>
+
+  <ul class="setup-list">
+    <li><strong>Docker:</strong> Visit <code class="inline-code">http://localhost:5000/reset-db</code> in your browser</li>
+    <li><strong>Source:</strong> Re-run <code class="inline-code">mysql -u cysec_lab -p'cysec_lab_pass' cysec_lab &lt; db/init.sql</code></li>
+    <li><strong>Docker Compose (nuclear):</strong> <code class="inline-code">docker compose down -v</code> then <code class="inline-code">docker compose up -d</code></li>
+  </ul>
+</div>
+
+<!-- Troubleshooting -->
+<div class="section-block">
+  <h2>&#128736; Troubleshooting</h2>
+  <div class="table-wrapper">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Problem</th>
+          <th>Solution</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code class="inline-code">Waiting for database...</code></td>
+          <td>Ensure MariaDB is running: <code class="inline-code">docker compose ps</code>. The app retries for 60 seconds.</td>
+        </tr>
+        <tr>
+          <td><code class="inline-code">Port 5000 already in use</code></td>
+          <td>Stop the conflicting process, or edit <code class="inline-code">docker-compose.yml</code> ports (e.g., <code class="inline-code">5001:5000</code>).</td>
+        </tr>
+        <tr>
+          <td><code class="inline-code">Database connection refused</code></td>
+          <td>Check <code class="inline-code">DB_HOST</code> matches container name (<code class="inline-code">db</code> for Docker, <code class="inline-code">localhost</code> for source).</td>
+        </tr>
+        <tr>
+          <td><code class="inline-code">Module not found</code></td>
+          <td>Ensure virtual environment is activated and run <code class="inline-code">pip install -r requirements.txt</code>.</td>
+        </tr>
+        <tr>
+          <td><code class="inline-code">Database tables missing</code></td>
+          <td>Visit <code class="inline-code">/reset-db</code> endpoint or re-import <code class="inline-code">init.sql</code>.</td>
+        </tr>
+        <tr>
+          <td>Docker build fails</td>
+          <td>Check Dockerfile syntax and free disk space. Try <code class="inline-code">docker system prune</code>.</td>
+        </tr>
+        <tr>
+          <td>Blank page / 500 error</td>
+          <td>Check logs: <code class="inline-code">docker compose logs -f app</code>.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

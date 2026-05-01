@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}Profile Search — CySec SQLi Lab{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>&#128269; Profile Search</h1>
+  <p class="subtitle">Search for employee profiles — this is where stored payloads execute.</p>
+</div>
+
+<!-- Search Form -->
+<div class="form-container">
+  <form method="POST" action="/profile-search" class="form">
+    <h2 class="form-title">&#128100; Search Profiles</h2>
+
+    <div class="form-group">
+      <label for="username" class="form-label">Username</label>
+      <input
+        type="text"
+        id="username"
+        name="username"
+        class="form-input"
+        placeholder="Enter username to search..."
+        value="{{ username if username else '' }}"
+        autocomplete="off"
+      >
+    </div>
+
+    <button type="submit" class="button button-primary button-full">Search</button>
+  </form>
+</div>
+
+<!-- Result Card -->
+{% if profile %}
+<div class="section-block">
+  <h2>&#9989; Profile Found</h2>
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">{{ profile.username }}</h3>
+      {% if profile.role %}
+        <span class="badge badge-{% if profile.role == 'admin' %}red{% elif profile.role == 'manager' %}yellow{% else %}blue{% endif %}">{{ profile.role }}</span>
+      {% endif %}
+    </div>
+    <div class="card-body">
+      <div class="detail-grid">
+        <div class="detail-item">
+          <span class="detail-label">Username</span>
+          <span class="detail-value">{{ profile.username }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Email</span>
+          <span class="detail-value mono">{{ profile.email }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Department</span>
+          <span class="detail-value">{{ profile.department }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Salary</span>
+          <span class="detail-value mono">${{ "%.2f"|format(profile.salary) if profile.salary else 'N/A' }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% elif username %}
+<div class="hint-box">
+  <p>&#128533; No profile found for "<strong>{{ username }}</strong>". The user may not exist, or your injected SQL condition returned no results.</p>
+</div>
+{% endif %}
+
+<!-- Hint Box -->
+<div class="hint-box">
+  <h3>&#128161; Challenge Hints</h3>
+
+  <p>{{ hint if hint else "This page queries the database using stored user data. If you registered with a SQL payload, this is where it executes." }}</p>
+
+  <h4>Query Structure</h4>
+  <pre class="code-block"><code>SELECT username, email, department, salary, role 
+FROM users 
+WHERE username = '{{ username if username else '[input]' }}'</code></pre>
+
+  <ul>
+    <li>If you registered a user with a crafted username (e.g., <code class="inline-code">myuser'--</code>), 
+      the stored value becomes part of this query.</li>
+    <li>The single-quote closure in your stored data can break the query string and inject additional SQL logic.</li>
+    <li>Example attack flow:
+      <ol>
+        <li>Register with username: <code class="inline-code">' UNION SELECT username, password, 'leaked', salary, role FROM users--</code></li>
+        <li>Search for that user on this page.</li>
+        <li>The stored username closes the query string and appends a UNION to leak credentials.</li>
+      </ol>
+    </li>
+    <li>Even if the registration form "escapes" or "sanitizes" input, the stored data is still used raw here.</li>
+  </ul>
+
+  <p class="hint-meta">
+    Part of: <span class="badge badge-blue">Second-Order SQL Injection</span> &nbsp; 
+    Difficulty: <span class="badge badge-red">Hard</span>
+  </p>
+</div>
+
+{% endblock %}

@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Panel — CySec SQLi Lab{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>&#128736; Admin Panel</h1>
+  <p class="subtitle">Privilege Escalation — Can you elevate your role using SQL injection?</p>
+</div>
+
+<!-- Admin Warning -->
+<div class="warning-box">
+  <div class="warning-icon">&#128737;</div>
+  <div class="warning-content">
+    <h3>Restricted Area — Admin Panel</h3>
+    <p>
+      This panel is intended for system administrators only. All role modification actions are 
+      logged and audited. Unauthorized modifications will be recorded for educational review.
+    </p>
+  </div>
+</div>
+
+<!-- Success / Error Messages -->
+{% if success %}
+<div class="success-box">
+  <span class="success-icon">&#9989;</span>
+  {{ success }}
+</div>
+{% endif %}
+
+{% if error %}
+<div class="error-box">
+  <span class="error-icon">&#10060;</span>
+  {{ error }}
+</div>
+{% endif %}
+
+<!-- User Table -->
+<div class="section-block">
+  <h2>&#128101; System Users</h2>
+  <div class="table-wrapper">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>User ID</th>
+          <th>Username</th>
+          <th>Role</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in users %}
+        <tr>
+          <td class="mono">{{ user.user_id }}</td>
+          <td>{{ user.username }}</td>
+          <td>
+            <span class="badge badge-{% if user.role == 'admin' %}red{% elif user.role == 'manager' %}yellow{% else %}blue{% endif %}">
+              {{ user.role }}
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Role Update Form -->
+<div class="form-container">
+  <form method="POST" action="/admin/update-role" class="form">
+    <h2 class="form-title">&#128295; Update User Role</h2>
+
+    <div class="form-group">
+      <label for="user_id" class="form-label">User ID</label>
+      <input
+        type="text"
+        id="user_id"
+        name="user_id"
+        class="form-input"
+        placeholder="Enter user ID to update..."
+        autocomplete="off"
+        required
+      >
+    </div>
+
+    <div class="form-group">
+      <label for="new_role" class="form-label">New Role</label>
+      <select id="new_role" name="new_role" class="form-input form-select">
+        <option value="user">User</option>
+        <option value="manager">Manager</option>
+        <option value="admin">Admin</option>
+      </select>
+    </div>
+
+    <button type="submit" class="button button-primary button-full">Update Role</button>
+  </form>
+</div>
+
+<!-- Hint Box -->
+<div class="hint-box">
+  <h3>&#128161; Challenge Hints — Privilege Escalation</h3>
+
+  <p>{{ hint if hint else "The role update form is vulnerable. Find a way to escalate your account from 'user' to 'admin'." }}</p>
+
+  <h4>Query Structure</h4>
+  <p>The backend runs this query to update roles:</p>
+  <pre class="code-block"><code>UPDATE users 
+SET role = '{{ new_role }}' 
+WHERE user_id = {{ user_id }}</code></pre>
+
+  <h4>Attack Vectors</h4>
+  <ul>
+    <li>
+      <strong>Inject into user_id:</strong> Modify the WHERE clause to affect a broader set of users.
+      <pre class="code-block"><code>User ID: 1 OR 1=1
+Role: admin</code></pre>
+      This would set <em>every</em> user to admin role.
+    </li>
+    <li>
+      <strong>Stacked queries</strong> (if supported by the DB driver):
+      <pre class="code-block"><code>User ID: 1; UPDATE users SET role='admin' WHERE username='youruser'--
+Role: user</code></pre>
+    </li>
+    <li>
+      <strong>Inject into role:</strong> Close the string and add subqueries.
+      <pre class="code-block"><code>Role: admin' WHERE username='youruser'--</code></pre>
+    </li>
+    <li>
+      <strong>Higher security levels:</strong> The application may validate role values 
+      against a whitelist. Try bypassing the validation by manipulating the query structure rather than the role value itself.
+    </li>
+  </ul>
+
+  <div class="warning-box" style="margin-top: 1rem;">
+    <p>
+      <strong>Remember:</strong> The goal is to escalate <em>your own</em> account to admin, 
+      not to attack other users. A true pentester documents findings without causing unnecessary impact.
+    </p>
+  </div>
+
+  <p class="hint-meta">Difficulty: <span class="badge badge-red">Hard</span> &nbsp; Points: 400</p>
+</div>
+
+{% endblock %}

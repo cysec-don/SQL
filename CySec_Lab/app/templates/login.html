@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Login — CySec SQLi Lab{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>&#128274; Authentication Challenge</h1>
+  <p class="subtitle">Can you bypass the login form using SQL injection?</p>
+</div>
+
+<!-- Warning -->
+<div class="warning-box">
+  <div class="warning-icon">&#9888;</div>
+  <div class="warning-content">
+    <p>
+      <strong>Educational Purpose Only.</strong> The techniques demonstrated here must only be used 
+      within this authorized lab environment. Unauthorized access to real systems is illegal.
+    </p>
+  </div>
+</div>
+
+<div class="form-container">
+  <!-- Error Message -->
+  {% if error %}
+  <div class="error-box">
+    <span class="error-icon">&#10060;</span>
+    {{ error }}
+  </div>
+  {% endif %}
+
+  <!-- Login Form -->
+  <form method="POST" action="/login" class="form">
+    <h2 class="form-title">&#128100; Sign In</h2>
+
+    <div class="form-group">
+      <label for="username" class="form-label">Username</label>
+      <input
+        type="text"
+        id="username"
+        name="username"
+        class="form-input"
+        placeholder="Enter username or SQL payload..."
+        required
+        autocomplete="off"
+      >
+    </div>
+
+    <div class="form-group">
+      <label for="password" class="form-label">Password</label>
+      <input
+        type="password"
+        id="password"
+        name="password"
+        class="form-input"
+        placeholder="Enter password..."
+        required
+        autocomplete="off"
+      >
+    </div>
+
+    <button type="submit" class="button button-primary button-full">Login</button>
+  </form>
+</div>
+
+<!-- Hint Box -->
+<div class="hint-box">
+  <h3>&#128161; Challenge Hints</h3>
+  <ul>
+    <li>The backend constructs a SQL query like:
+      <pre class="code-block"><code>SELECT * FROM users 
+WHERE username = '{{ username }}' 
+AND password = '{{ password }}'</code></pre>
+    </li>
+    <li>Try closing the string with a single quote (<code class="inline-code">'</code>) to break out of the intended query.</li>
+    <li>Use a comment (<code class="inline-code">--</code> or <code class="inline-code">#</code>) to ignore the rest of the query.</li>
+    <li>Your goal: log in as the <strong>admin</strong> user without knowing the real password.</li>
+  </ul>
+  <p class="hint-meta">Difficulty: <span class="badge badge-green">Easy</span> &nbsp; Points: 100</p>
+</div>
+
+{% endblock %}
