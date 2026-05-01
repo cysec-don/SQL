@@ -91,7 +91,7 @@
 <div class="section-block">
   <h2>&#128100; Recent Login Attempts</h2>
   <div class="table-wrapper">
-    <table class="table">
+    <table class="data-table">
       <thead>
         <tr>
           <th>Username</th>
@@ -101,7 +101,7 @@
         </tr>
       </thead>
       <tbody>
-        {% for attempt in login_attempts %}
+        {% for attempt in recent_attempts %}
         <tr>
           <td class="mono">{{ attempt.username }}</td>
           <td class="mono">{{ attempt.ip_address }}</td>
@@ -126,12 +126,15 @@
 <div class="section-block">
   <h2>&#128203; Audit Log</h2>
   <div class="table-wrapper">
-    <table class="table">
+    <table class="data-table">
       <thead>
         <tr>
           <th>Timestamp</th>
-          <th>Event</th>
-          <th>Details</th>
+          <th>Table</th>
+          <th>Action</th>
+          <th>Old Value</th>
+          <th>New Value</th>
+          <th>Performed By</th>
         </tr>
       </thead>
       <tbody>
@@ -139,17 +142,14 @@
         <tr>
           <td class="mono">{{ entry.created_at.strftime('%Y-%m-%d %H:%M:%S') if entry.created_at else 'N/A' }}</td>
           <td>
-            {% if 'challenge' in entry.event_type|lower %}
-              <span class="badge badge-green">{{ entry.event_type }}</span>
-            {% elif 'login' in entry.event_type|lower %}
-              <span class="badge badge-blue">{{ entry.event_type }}</span>
-            {% elif 'error' in entry.event_type|lower or 'fail' in entry.event_type|lower %}
-              <span class="badge badge-red">{{ entry.event_type }}</span>
-            {% else %}
-              <span class="badge badge-purple">{{ entry.event_type }}</span>
-            {% endif %}
+            <span class="badge badge-blue">{{ entry.table_name }}</span>
           </td>
-          <td>{{ entry.details }}</td>
+          <td>
+            <span class="badge badge-purple">{{ entry.action }}</span>
+          </td>
+          <td class="mono" style="max-width:150px;overflow:hidden;text-overflow:ellipsis;">{{ entry.old_value }}</td>
+          <td class="mono" style="max-width:150px;overflow:hidden;text-overflow:ellipsis;">{{ entry.new_value }}</td>
+          <td class="mono">{{ entry.performed_by }}</td>
         </tr>
         {% endfor %}
       </tbody>

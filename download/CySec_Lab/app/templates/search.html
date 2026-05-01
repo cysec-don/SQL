@@ -24,10 +24,10 @@
       <input
         type="text"
         id="query"
-        name="query"
+        name="q"
         class="form-input"
         placeholder="Enter product name or SQL payload..."
-        value="{{ query if query else '' }}"
+        value="{{ search_term if search_term else '' }}"
         autocomplete="off"
       >
     </div>
@@ -36,10 +36,13 @@
       <label for="category" class="form-label">Category (Optional)</label>
       <select id="category" name="category" class="form-input form-select">
         <option value="">All Categories</option>
-        <option value="electronics" {% if category == 'electronics' %}selected{% endif %}>Electronics</option>
-        <option value="software" {% if category == 'software' %}selected{% endif %}>Software</option>
-        <option value="hardware" {% if category == 'hardware' %}selected{% endif %}>Hardware</option>
-        <option value="networking" {% if category == 'networking' %}selected{% endif %}>Networking</option>
+        <option value="Security" {% if category == 'Security' %}selected{% endif %}>Security</option>
+        <option value="Monitoring" {% if category == 'Monitoring' %}selected{% endif %}>Monitoring</option>
+        <option value="Access" {% if category == 'Access' %}selected{% endif %}>Access</option>
+        <option value="Storage" {% if category == 'Storage' %}selected{% endif %}>Storage</option>
+        <option value="Operations" {% if category == 'Operations' %}selected{% endif %}>Operations</option>
+        <option value="Intelligence" {% if category == 'Intelligence' %}selected{% endif %}>Intelligence</option>
+        <option value="Testing" {% if category == 'Testing' %}selected{% endif %}>Testing</option>
       </select>
     </div>
 
@@ -60,11 +63,11 @@
 {% endif %}
 
 <!-- Results Table -->
-{% if results is defined and results %}
+{% if results %}
 <div class="section-block">
   <h2>&#128203; Search Results ({{ results|length }} found)</h2>
   <div class="table-wrapper">
-    <table class="table">
+    <table class="data-table">
       <thead>
         <tr>
           <th>ID</th>
@@ -75,16 +78,16 @@
       <tbody>
         {% for row in results %}
         <tr>
-          <td class="mono">{{ row[0] }}</td>
-          <td>{{ row[1] }}</td>
-          <td class="mono">${{ "%.2f"|format(row[2]) if row[2] is not none else row[2] }}</td>
+          <td class="mono">{{ row.product_id }}</td>
+          <td>{{ row.name }}</td>
+          <td class="mono">${{ "%.2f"|format(row.price) if row.price is not none else row.price }}</td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 </div>
-{% elif results is defined and not results and query %}
+{% elif results is defined and not results and search_term %}
 <div class="hint-box">
   <p>No products found matching your query. Try a different search term, or verify your SQL syntax is correct.</p>
 </div>
@@ -100,7 +103,7 @@
     <li>The query is built as:
       <pre class="code-block"><code>SELECT product_id, name, price 
 FROM products 
-WHERE name LIKE '%{{ query if query else '[input]' }}%'
+WHERE name LIKE '%{{ search_term if search_term else '[input]' }}%'
 {% if category %}AND category = '{{ category }}'{% endif %}</code></pre>
     </li>
     <li>Use <code class="inline-code">'</code> to break out of the string literal and trigger an error.</li>
