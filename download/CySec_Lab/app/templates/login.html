@@ -69,7 +69,7 @@
     <li>The backend constructs a SQL query like:
       <pre class="code-block"><code>SELECT * FROM users 
 WHERE username = '{{ username }}' 
-AND password = '{{ password }}'</code></pre>
+AND password_hash = '{{ password }}'</code></pre>
     </li>
     <li>Try closing the string with a single quote (<code class="inline-code">'</code>) to break out of the intended query.</li>
     <li>Use a comment (<code class="inline-code">--</code> or <code class="inline-code">#</code>) to ignore the rest of the query.</li>

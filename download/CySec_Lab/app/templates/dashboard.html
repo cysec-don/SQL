@@ -63,7 +63,7 @@
     <div class="card-body">
       <div class="badge-group">
         <span class="badge badge-blue">{{ ch.category }}</span>
-        <span class="badge badge-{% if ch.difficulty == 'Easy' %}green{% elif ch.difficulty == 'Medium' %}yellow{% else %}red{% endif %}">{{ ch.difficulty }}</span>
+        <span class="badge badge-{% if ch.difficulty == 'Beginner' %}green{% elif ch.difficulty == 'Intermediate' %}yellow{% else %}red{% endif %}">{{ ch.difficulty }}</span>
       </div>
       <p class="card-text">{{ ch.description }}</p>
       <div class="card-footer">
@@ -87,7 +87,7 @@
 </div>
 
 <!-- Recent Login Attempts -->
-{% if login_attempts %}
+{% if recent_attempts %}
 <div class="section-block">
   <h2>&#128100; Recent Login Attempts</h2>
   <div class="table-wrapper">

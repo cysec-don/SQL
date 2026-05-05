@@ -72,8 +72,8 @@
 
   <h4>Query Structure</h4>
   <p>The backend constructs this query:</p>
-  <pre class="code-block"><code>SELECT response_text FROM diagnostics 
-WHERE target_id = {{ target_id if target_id else '[your_input]' }}</code></pre>
+  <pre class="code-block"><code>SELECT username FROM users 
+WHERE user_id = {{ target_id if target_id else '[your_input]' }}</code></pre>
 
   <h4>Time-Based Injection Techniques</h4>
   <ul>

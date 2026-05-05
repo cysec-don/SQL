@@ -15,9 +15,6 @@ WARNING: This application contains INTENTIONAL security vulnerabilities.
 import os
 import re
 import time
-import logging
-import hashlib
-from functools import wraps
 from flask import (
     Flask, render_template, request, redirect, url_for,
     session, jsonify, g, flash, abort
@@ -177,14 +174,14 @@ def safe_query_db(query, params=None, fetch=True):
 # HELPERS
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 def get_completed_challenges():
-    """Get set of completed challenge IDs from session."""
-    return session.get('completed', set())
+    """Get list of completed challenge IDs from session."""
+    return set(session.get('completed', []))
 
 def mark_challenge_complete(challenge_id):
     """Mark a challenge as completed."""
     completed = get_completed_challenges()
     completed.add(challenge_id)
-    session['completed'] = completed
+    session['completed'] = list(completed)
     session['score'] = sum(
         CHALLENGES[c]['points'] for c in completed
         if c in CHALLENGES
@@ -397,7 +394,7 @@ def search():
 
     return render_template('search.html',
         results=results, search_term=search_term, error=error_msg,
-        num_columns=num_columns,
+        num_columns=num_columns, category=category,
         challenge=CHALLENGES['error_based'],
     )
 
@@ -457,7 +454,7 @@ def union_search():
 
     return render_template('search.html',
         results=results, search_term=search_term, error=error_msg,
-        num_columns=3, mode='union',
+        num_columns=3, mode='union', category='',
         challenge=CHALLENGES['union_based'],
     )
 
@@ -529,6 +526,7 @@ def user_lookup():
 
     return render_template('user_lookup.html',
         result=result, lookup_id=lookup_id, hint=hint,
+        submitted=True if request.method == 'POST' else False,
         challenge=CHALLENGES['boolean_blind'],
     )
 
@@ -653,6 +651,7 @@ def register():
 
     return render_template('register.html',
         error=error, success=success_msg,
+        username=username, email=email, department=department,
         challenge=CHALLENGES['second_order'],
     )
 
@@ -671,7 +670,7 @@ def profile_search():
             try:
                 # This pulls the stored username and uses it in a new query
                 query = f"""
-                    SELECT u.user_id, u.username, u.email, u.department, u.salary
+                    SELECT u.user_id, u.username, u.email, u.department, u.salary, u.role
                     FROM users u
                     WHERE u.username = '{search_term}'
                 """
@@ -696,7 +695,7 @@ def profile_search():
             try:
                 safe_term = sanitize_input(search_term)
                 results = safe_query_db(
-                    "SELECT user_id, username, email, department, salary FROM users WHERE username = %s",
+                    "SELECT user_id, username, email, department, salary, role FROM users WHERE username = %s",
                     (safe_term,)
                 )
                 if results:
@@ -710,7 +709,7 @@ def profile_search():
         else:
             try:
                 results = safe_query_db(
-                    "SELECT user_id, username, email, department, salary FROM users WHERE username = %s",
+                    "SELECT user_id, username, email, department, salary, role FROM users WHERE username = %s",
                     (search_term,)
                 )
                 if results:
@@ -820,10 +819,24 @@ def reset_db():
     try:
         conn = get_db()
         cursor = conn.cursor()
-        with open('/app/db/init.sql', 'r') as f:
+        # Try Docker path first, then local source path
+        sql_path = '/app/db/init.sql'
+        if not os.path.exists(sql_path):
+            sql_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'db', 'init.sql')
+        with open(sql_path, 'r') as f:
             sql = f.read()
-            for result in cursor.execute(sql, multi=True):
-                pass
+        # mysql.connector doesn't support DELIMITER syntax
+        statements = sql.split(';')
+        for stmt in statements:
+            stmt = stmt.strip()
+            if not stmt or stmt.startswith('DELIMITER') or stmt == '//':
+                continue
+            stmt = stmt.replace('//', '')
+            if stmt.strip():
+                try:
+                    cursor.execute(stmt)
+                except Exception:
+                    pass  # Skip individual failures (e.g. partial trigger body)
         conn.commit()
         cursor.close()
         session.clear()
